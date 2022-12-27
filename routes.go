@@ -2,8 +2,8 @@ package tinyurl
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -12,9 +12,18 @@ import (
 
 type HandleFunc = func(http.ResponseWriter, *http.Request)
 
-func urlIsValid(uri string) bool {
-	_, err := url.Parse(uri)
-	return err == nil
+func urlIsValid(uri string) (bool, error) {
+	u, err := url.Parse(uri)
+	if u.Scheme == "" {
+		u.Scheme = "https"
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.New("error parsing url")
+	}
+
+	return true, nil
 }
 
 func encodeIdAsString(id int) string {
@@ -56,15 +65,26 @@ func HandleRoot(a App, w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleTinyfication(a App, w http.ResponseWriter, r *http.Request) {
-	var url TinyRequestPayload
-	err := json.NewDecoder(r.Body).Decode(&url)
+	var u TinyRequestPayload
+	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
 		panic("oh no")
 	}
-	if !urlIsValid(url.Url) {
-		w.WriteHeader(http.StatusBadRequest)
+	isValid, err := urlIsValid(u.Url)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	id, _ := a.store.Store(url.Url)
+	if !isValid {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	id, err := a.store.Store(u.Url)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("generating small url"))
+		return
+	}
 	code := encodeIdAsString(id)
 	codeResponse := TinyRequestResponse{Code: code}
 	json.NewEncoder(w).Encode(codeResponse)
@@ -77,9 +97,6 @@ func HandleRedirect(a App, w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%d\n", id)
 	url, err := a.store.GetById(id)
 	if err != nil {
-		log.Panic(err)
-		fmt.Print("error")
-		w.Write([]byte("not found"))
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
