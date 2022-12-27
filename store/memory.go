@@ -11,13 +11,13 @@ type InMemoryUrlStore struct {
 	mutex sync.Mutex
 }
 
-func (s *InMemoryUrlStore) Store(url string) int {
+func (s *InMemoryUrlStore) Store(url string) (int, error) {
 	s.mutex.Lock()
 	s.data = append(s.data, url)
 	idx := len(s.data)
 	s.len = s.len + 1
 	s.mutex.Unlock()
-	return idx
+	return idx, nil
 }
 
 func (s *InMemoryUrlStore) GetById(id int) (string, error) {
@@ -25,10 +25,6 @@ func (s *InMemoryUrlStore) GetById(id int) (string, error) {
 		return "", errors.New("record does not exist")
 	}
 	return s.data[id-1], nil
-}
-
-func (s *InMemoryUrlStore) GetSize() int {
-	return s.len
 }
 
 func NewInMemoryUrlStore() *InMemoryUrlStore {

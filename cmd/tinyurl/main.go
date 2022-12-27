@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	store := store.NewInMemoryUrlStore()
+	store, _ := store.NewSqliteUrlStore("./db.sqlite")
 	app := tinyurl.NewApp("v0", store)
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/tiny/{code}", tinyurl.MakeHandleFunction(app, tinyurl.HandleRedirect)).Methods("GET")

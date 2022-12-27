@@ -19,6 +19,5 @@ func NewApp(version string, store UrlStore) App {
 
 type UrlStore interface {
 	GetById(int) (string, error)
-	Store(string) int
-	GetSize() int
+	Store(string) (int, error)
 }

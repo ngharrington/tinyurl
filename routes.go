@@ -64,7 +64,7 @@ func HandleTinyfication(a App, w http.ResponseWriter, r *http.Request) {
 	if !urlIsValid(url.Url) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	id := a.store.Store(url.Url)
+	id, _ := a.store.Store(url.Url)
 	code := encodeIdAsString(id)
 	codeResponse := TinyRequestResponse{Code: code}
 	json.NewEncoder(w).Encode(codeResponse)
