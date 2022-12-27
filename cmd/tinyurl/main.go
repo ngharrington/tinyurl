@@ -36,8 +36,6 @@ func (s *InMemoryUrlStore) Store(url string) int {
 	s.data = append(s.data, url)
 	idx := len(s.data)
 	s.len = s.len + 1
-	fmt.Println("incremented")
-	fmt.Printf("write length %d\n", s.len)
 	s.mutex.Unlock()
 	return idx
 }
@@ -48,7 +46,6 @@ func urlIsValid(uri string) bool {
 }
 
 func (s *InMemoryUrlStore) GetById(id int) (string, error) {
-	fmt.Printf("read length %d\n", s.len)
 	if id > s.len {
 		return "", errors.New("record does not exist")
 	}
