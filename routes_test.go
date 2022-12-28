@@ -27,3 +27,13 @@ func TestUrlIsValid(t *testing.T) {
 		t.Error("should be invalid")
 	}
 }
+
+func TestCleanUrl(t *testing.T) {
+	got, err := cleanUrl("amazon.com")
+	if err != nil {
+		t.Error(err)
+	}
+	if got != "https://amazon.com" {
+		t.Error("url not properly cleaned")
+	}
+}
