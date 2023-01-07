@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,17 +15,18 @@ import (
 	"github.com/rs/cors"
 )
 
-func runServer(ctx context.Context) {
+func runServer(ctx context.Context, cfg *tinyurl.ServerConfig) {
 	store, _ := store.NewSqliteUrlStore("./db.sqlite")
 	app := tinyurl.NewApp("v0", store)
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"}, // All origins
 	})
+	addr := cfg.Host + ":" + cfg.Port
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/tiny/{code}", tinyurl.MakeHandleFunction(app, tinyurl.HandleRedirect)).Methods("GET")
 	router.HandleFunc("/tiny", tinyurl.MakeHandleFunction(app, tinyurl.HandleTinyfication)).Methods("POST")
 	router.HandleFunc("/", tinyurl.MakeHandleFunction(app, tinyurl.HandleRoot)).Methods("GET")
-	srv := http.Server{Addr: ":5000", Handler: c.Handler(router)}
+	srv := http.Server{Addr: addr, Handler: c.Handler(router)}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
@@ -36,19 +38,6 @@ func runServer(ctx context.Context) {
 	srv.Shutdown(ctx)
 
 }
-
-// func main() {
-// store, _ := store.NewSqliteUrlStore("./db.sqlite")
-// app := tinyurl.NewApp("v0", store)
-// c := cors.New(cors.Options{
-// 	AllowedOrigins: []string{"*"}, // All origins
-// })
-// router := mux.NewRouter().StrictSlash(true)
-// router.HandleFunc("/tiny/{code}", tinyurl.MakeHandleFunction(app, tinyurl.HandleRedirect)).Methods("GET")
-// router.HandleFunc("/tiny", tinyurl.MakeHandleFunction(app, tinyurl.HandleTinyfication)).Methods("POST")
-// router.HandleFunc("/", tinyurl.MakeHandleFunction(app, tinyurl.HandleRoot)).Methods("GET")
-// runServer(c.Handler(router))
-// }
 
 func main() {
 	cmds := []acmd.Command{
@@ -69,11 +58,19 @@ func main() {
 			},
 		},
 		{
-			Name:        "sleep",
-			Description: "prints status of the system",
+			Name:        "server",
+			Description: "runs the web service",
 			ExecFunc: func(ctx context.Context, args []string) error {
-				log.Println("starting server")
-				runServer(ctx)
+				cfg := tinyurl.NewConfig()
+				fs := flag.NewFlagSet("tinyurl", flag.PanicOnError)
+				fs.StringVar(&cfg.Port, "port", "5000", "")
+				fs.StringVar(&cfg.Host, "host", "localhost", "")
+				if err := fs.Parse(args); err != nil {
+					fmt.Println(err)
+					return err
+				}
+				fmt.Println(cfg)
+				runServer(ctx, cfg)
 				return nil
 			},
 		},
@@ -81,15 +78,13 @@ func main() {
 
 	// all the acmd.Config fields are optional
 	r := acmd.RunnerOf(cmds, acmd.Config{
-		AppName:        "acmd-example",
-		AppDescription: "Example of acmd package",
-		Version:        "the best v0.x.y",
-		// Context - if nil `signal.Notify` will be used
-		// Args - if nil `os.Args[1:]` will be used
-		// Usage - if nil default print will be used
+		AppName:        "tinyurl",
+		AppDescription: "A tinyurl web service",
+		Version:        "0.0.1",
 	})
 
 	if err := r.Run(); err != nil {
+		fmt.Println(err)
 		r.Exit(err)
 	}
 }
