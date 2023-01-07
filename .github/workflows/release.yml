@@ -1,0 +1,20 @@
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: linux
+          goarch: amd64
+          extra_files: LICENSE
+          goversion: "1.19"
+          project_path: 'cmd/tinyurl'
+
+      
